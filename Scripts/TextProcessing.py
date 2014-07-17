@@ -42,20 +42,23 @@ class Article:
     def __init__(self, text, title):
         self.text = text
         self.title = title
-        self.blocks40 = self.GetBlocks(40)
-        self.blocks50 = self.GetBlocks(50)
-        self.blocks60 = self.GetBlocks(60)
+        self.blocks40, self.BlockIDByWordCount40 = self.GetBlocks(40)
+        self.blocks50, self.BlockIDByWordCount50 = self.GetBlocks(50)
+        self.blocks60, self.BlockIDByWordCount60 = self.GetBlocks(60)
         self.blockClassByID40 = self.SetClassesToBlocks(self.blocks40)
         self.blockClassByID50 = self.SetClassesToBlocks(self.blocks50)
         self.blockClassByID60 = self.SetClassesToBlocks(self.blocks60)
+        self.EstimateRealBlocks()
 
     def GetBlocks(self, size):
         blocks = []
-        words = self.text.split(' ')
+        onlyText = re.sub(r'[^Р-пр-џ]', ' ', self.text)
+        words = onlyText.split(' ')
         blockCount = 1
         blockSize = 0
         textBlock = ''
         wordCount = 0
+        BlockIDByWordCount = {}
         for word in words:
             blockSize += len(word)
             
@@ -67,10 +70,11 @@ class Article:
                 blockSize = len(word)
                 textBlock = word + ' '
                 blockCount += 1
+            BlockIDByWordCount[wordCount] = blockCount
             wordCount += 1
             
             
-        return blocks
+        return blocks, BlockIDByWordCount
 
     def SetClassesToBlocks(self, blocks):
         maxRatio = 1.0 * max(blocks,key=attrgetter('signWordRation')).signWordRation
@@ -95,7 +99,43 @@ class Article:
             else:
                 block.SetClass(0)
                 blockClassByID[block.ID]=0
-                
+
+        return blockClassByID
+
+    def EstimateRealBlocks(self):
+        onlyText = re.sub(r'[^Р-пр-џ]', ' ', self.text)
+        words = onlyText.split()
+        wordCount = 0
+        self.blockClassByID40
+        self.blockClassByID50
+        self.blockClassByID60
+        self.words = []
+        for word in words:
+            wordClass40 = self.GetClassForWord(wordCount, self.BlockIDByWordCount40, self.blockClassByID40)
+            wordClass50 = self.GetClassForWord(wordCount, self.BlockIDByWordCount50, self.blockClassByID50)
+            wordClass60 = self.GetClassForWord(wordCount, self.BlockIDByWordCount60, self.blockClassByID60)
+            customWord = Word(word, wordCount, wordClass40, wordClass50, wordClass60)
+            self.words.append(customWord)
+            wordCount += 1
+
+    def GetClassForWord(self, wordCount, BlockIDByWordCount, blockClassByID):
+        blockID = BlockIDByWordCount[wordCount]
+        return blockClassByID[blockID]
+
+class Word:
+    def __init__(self, word, position, class40, class50, class60):
+        self.word = word
+        self.position = position
+        self.class40 = class40
+        self.class50 = class50
+        self.class60 = class60
+        self.wordClass = -1
+        if(self.class40 == self.class50):
+            self.wordClass = self.class40
+        elif(self.class40 == self.class60):
+            self.wordClass = self.class40
+        elif(self.class50 == self.class60):
+            self.wordClass = self.class50
         
 
 class Block:
@@ -134,7 +174,27 @@ class Output:
             fileName = outFolder + '/' + article.title + '_blocksClasses60.png'
             title = ' BlockSize - 60'
             self.__drawBlockClasses(fileName, article.blocks60, title)
+            
+    def PrintWords(self, outFolder):
+        if not os.path.exists(outFolder):
+            os.makedirs(outFolder)
 
+        for article in self.articles:
+            fileName = outFolder + '/' + article.title + '_words_classes.txt'
+            file = open(fileName, 'w')
+            output = ''
+            for word in article.words:
+                output += str(word.position) + '\t'
+                output += word.word + '\t'
+                output += str(word.class40) + '\t'
+                output += str(word.class50) + '\t'
+                output += str(word.class60) + '\t'
+                output += str(word.wordClass) + '\t'
+                output += '\n'
+            
+            file.write(output)
+            file.close()
+    
     def __drawBlockClasses(self, filename, blocks, title):
         classes = []
         blockID = []
@@ -192,6 +252,7 @@ if __name__ == "__main__":
     pathToOutput = "C:\AnnotationToolScripts\AnnotationToolScripts\Output"
     articles = TextParser.GenerateArticlesFromFiles(pathToFiles)
     output = Output(articles)
-    output.PrintBlocks(pathToOutput)
-    output.DrawBlockClasses(pathToOutput)
+    #output.PrintBlocks(pathToOutput)
+    #output.DrawBlockClasses(pathToOutput)
+    output.PrintWords(pathToOutput)
     
