@@ -182,15 +182,25 @@ class Output:
         for article in self.articles:
             fileName = outFolder + '/' + article.title + '_words_classes.txt'
             file = open(fileName, 'w')
+
             output = ''
+            previousClass = -1
+            currentClass = -1
+            passedWords = ''
             for word in article.words:
-                output += str(word.position) + '\t'
-                output += word.word + '\t'
-                output += str(word.class40) + '\t'
-                output += str(word.class50) + '\t'
-                output += str(word.class60) + '\t'
-                output += str(word.wordClass) + '\t'
-                output += '\n'
+                currentClass = word.wordClass
+                if currentClass == -1:
+                    continue
+
+                if not currentClass == previousClass and not previousClass == -1:
+                    output += 'class ' + str(previousClass) + '\n'
+                    output += passedWords
+                    output += '\n\n'
+                    passedWords = ''
+
+                passedWords += word.word + ' '
+
+                previousClass = currentClass
             
             file.write(output)
             file.close()
