@@ -146,6 +146,7 @@ class Block:
         self.wordCount = TextProcessor.WordCount(block)
         self.signCount = TextProcessor.SignCount(block)
         self.signWordRation = self.signCount / self.wordCount
+        self.EspChar = EspersanCharacteristic(block)
 
     def SetClass(self, blockClass):
         self.blockClass = blockClass
