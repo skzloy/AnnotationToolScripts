@@ -2,7 +2,7 @@
 
 import os, os.path
 import re
-
+from MatchFinder import *
 
 class TextProcessor:
     @staticmethod
@@ -256,6 +256,9 @@ class Output:
 
         file.write(output)
         file.close()
+
+    def PrintMatches(self):
+        
 
         
 if __name__ == "__main__":
