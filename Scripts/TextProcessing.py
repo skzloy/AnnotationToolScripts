@@ -155,7 +155,7 @@ class Block:
     	return other + self.signWordRation
     
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class Output:
     def __init__(self, articles):
@@ -257,16 +257,63 @@ class Output:
         file.write(output)
         file.close()
 
-    def PrintMatches(self):
+    def PrintMatches(self, outFolder):
+        if not os.path.exists(outFolder):
+            os.makedirs(outFolder)
+            
+        for article in self.articles:
+            matches = ''
+            for block in article.blocks40:
+                matches += block.EspChar.ESP3.GroupID
+                
+            fileName = outFolder + '/' + article.title + '_MatchesForBlocks40.txt'
+            self.__printMatches(fileName, matches)
+
+            matches = ''
+            for block in article.blocks50:
+                matches += block.EspChar.ESP3.GroupID
+            
+            fileName = outFolder + '/' + article.title + '_MatchesForBlocks50.txt'
+            self.__printMatches(fileName, matches)
+
+            matches = ''
+            for block in article.blocks60:
+                matches += block.EspChar.ESP3.GroupID
+            
+            fileName = outFolder + '/' + article.title + '_MatchesForBlocks60.txt'
+            self.__printMatches(fileName, matches)
+
+    def __printMatches(self, fileName, matches):
+        file = open(fileName, 'w')
+        output = ''
         
+        
+            
+        output += str(matches) + '\n'
+        mss = MatchesFinder.FindMatchesSubstring(matches)
+        for matchSubstring in mss:
+            
+            output += matchSubstring.substring + '\t'
+            output += str(matchSubstring.lenght) + '\t'
+            output += str(matchSubstring.matchingCount) + '\t'
+            output += str(matchSubstring.startBlockID) + '\n'
+        #output += str(block.wordCount) + '\t'
+        #output += str(block.signCount) + '\t'
+        #output += str(block.signWordRation) + '\t'
+        #output += str(block.blockClass) + '\t'
+        #output += '\n'
+
+        file.write(output)
+        file.close()
 
         
 if __name__ == "__main__":
-    pathToFiles = "C:\AnnotationToolScripts\AnnotationToolScripts\Data"
+    pathToFiles = "C:\AnnotationToolScripts\Data"
     pathToOutput = "C:\AnnotationToolScripts\AnnotationToolScripts\Output"
     articles = TextParser.GenerateArticlesFromFiles(pathToFiles)
     output = Output(articles)
     #output.PrintBlocks(pathToOutput)
     #output.DrawBlockClasses(pathToOutput)
-    output.PrintWords(pathToOutput)
+    #output.PrintWords(pathToOutput)
+    output.PrintMatches(pathToOutput)
     

@@ -6,11 +6,11 @@ class EspersanCharacteristic:
         self.block = block
         self.ESP6 = ESP6(block)
         self.ESP5 = ESP5(self.ESP6)
-        self.ESP3 = ESP3(self.ESP3)
+        self.ESP3 = ESP3(self.ESP6)
 
 class ESP6:
     def __init__(self, text):
-        c = Counter(test.lower())
+        c = Counter(text.lower())
         self.E1 = c['ï'] + c['ò'] + c['ê']
         self.E2 = c['ñ'] + c['ø'] + c['ô'] + c['ö'] + c['õ']+c['ù']
         self.E3 = c['á'] + c['ä'] + c['ã']
@@ -31,6 +31,7 @@ class ESP3:
         self.E1 = esp6.E1 + esp6.E2
         self.E2 = esp6.E3 + esp6.E4
         self.E3 = esp6.E5 + esp6.E6
+        self.InitESP3Groups()
         self.EP1, self.EP2, self.EP3 = self.GetESPIndices(self.E1, self.E2, self.E3)
         self.GroupID = self.GetESP3Group(str(self.EP1) + str(self.EP2) + str(self.EP3))
 
@@ -121,6 +122,7 @@ class ESP3:
         return self.groupMaps[esp3p]
 
 import re
+from Levenshtein import *
 class MatchesFinder:
     @staticmethod
     def FindMatchesSubstring(st):
@@ -132,7 +134,7 @@ class MatchesFinder:
                 if(len(originalString) - i < j):
                     break
 
-                substringToSearch = originalString[i, j]
+                substringToSearch = originalString[i:j]
                 if (substringToSearch in originalString) and (substringToSearch not in matches):
                     matchCount = 0
                     startBlockID = [m.start() for m in re.finditer(substringToSearch, originalString)]
