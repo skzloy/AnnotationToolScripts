@@ -289,20 +289,16 @@ class Output:
         
         
             
-        output += str(matches) + '\n'
+        output += str(matches) + '\n\n'
         mss = MatchesFinder.FindMatchesSubstring(matches)
         for matchSubstring in mss:
             
             output += matchSubstring.substring + '\t'
-            output += str(matchSubstring.lenght) + '\t'
-            output += str(matchSubstring.matchingCount) + '\t'
+            output += str(matchSubstring.MatchCount()) + '\t'
+            output += str(matchSubstring.matches) + '\t'
             output += str(matchSubstring.startBlockID) + '\n'
-        #output += str(block.wordCount) + '\t'
-        #output += str(block.signCount) + '\t'
-        #output += str(block.signWordRation) + '\t'
-        #output += str(block.blockClass) + '\t'
-        #output += '\n'
-
+            
+        
         file.write(output)
         file.close()
 

@@ -123,35 +123,109 @@ class ESP3:
 
 import re
 from Levenshtein import *
+from itertools import permutations
+from sets import Set
 class MatchesFinder:
     @staticmethod
     def FindMatchesSubstring(st):
         originalString = st
         matches = {}
         res = []
+        #clear matches
         for j in range(2,5):
             for i in range(0, len(originalString)):
                 if(len(originalString) - i < j):
                     break
 
-                substringToSearch = originalString[i:j]
+                substringToSearch = originalString[i:i+j]
                 if (substringToSearch in originalString) and (substringToSearch not in matches):
                     matchCount = 0
-                    startBlockID = [m.start() for m in re.finditer(substringToSearch, originalString)]
-                    if(len(startBlockID) > 1):
-                        ms = MatchingSubstring(substringToSearch, len(substringToSearch), matchCount, startBlockID)
+                    startBlockID = [m.start()+1 for m in re.finditer(substringToSearch, originalString)]
+                    matchCount = len(startBlockID)
+                    if(matchCount > 1) and (len(substringToSearch)>1):
+                        ms = MatchingSubstring(substringToSearch)
+                        ms.AddMatch(substringToSearch, set(startBlockID))
                         matches[substringToSearch] = ms
-                        res.append(ms)
+                        
+
+        #replacements
+        for j in range(2,5):
+            for i in range(0, len(originalString)-j):
+                substringToSearch = originalString[i:i+j]
+                stringToSearchIn = originalString[i+j:len(originalString)]
+                allSubstrings = SubstringGenerator.generate(stringToSearchIn, j)
+                matchCount = 0
+                for string in allSubstrings:
+                    if string in substringToSearch:
+                        continue
+                    if (1.0*levenshtein(string, substringToSearch))/(len(substringToSearch)) <= 0.3:
+                        if(substringToSearch not in matches):
+                            startBlockID = [m.start()+1 for m in re.finditer(string, stringToSearchIn)]
+                            startBlockID += [m.start()+1 for m in re.finditer(substringToSearch, stringToSearchIn)]
+                            ms = MatchingSubstring(substringToSearch)
+                            ms.AddMatch(string, set(startBlockID))
+                            matches[string] = ms
+                        else:
+                            ms = matches[substringToSearch]
+                            startBlockID = [m.start()+1 for m in re.finditer(string, stringToSearchIn)]
+                            ms.AddMatch(string, set(startBlockID))
                 
+        #permutations
+        for j in range(2,5):
+            for i in range(0, len(originalString)-j):
+                substringToSearch = originalString[i:i+j]
+                possiblePermutations = PermutationGenerator.generate(substringToSearch)
+                for permut in possiblePermutations:
+                    stringToSearchIn = originalString[i+j:len(originalString)]
+                    if (permut in stringToSearchIn) and (permut != substringToSearch):
+                        if(substringToSearch not in matches):
+                            startBlockID = [m.start()+1 for m in re.finditer(permut, stringToSearchIn)]
+                            startBlockID += [m.start()+1 for m in re.finditer(substringToSearch, stringToSearchIn)]
+                            ms = MatchingSubstring(substringToSearch)
+                            ms.AddMatch(permut, set(startBlockID))
+                            matches[string] = ms
+                        else:
+                            ms = matches[substringToSearch]
+                            
+                            startBlockID = [m.start()+1 for m in re.finditer(permut, stringToSearchIn)]
+                            ms.AddMatch(permut, set(startBlockID))
+
+                            
+        for match in matches.values():
+            res.append(match)
+        return res
+
+class PermutationGenerator:
+    @staticmethod
+    def generate(string):
+        return set([''.join(p) for p in permutations(string)])
+
+class SubstringGenerator:
+    @staticmethod
+    def generate(string, minStringLen):
+        res = []
+        for start in xrange(0,len(string)-1):
+            for end in xrange(start,len(string)-1):
+                posibleSubstring = string[start:end]
+                if(len(posibleSubstring) == minStringLen):
+                    res.append(posibleSubstring)
         return res
 
 class MatchingSubstring:
-    def __init__(self, substring, lenght, matchingCount, startBlockID):
+    def __init__(self, substring):
         self.substring = substring
-        self.lenght = lenght
-        self.matchingCount = matchingCount
-        self.startBlockID = startBlockID
+        self.startBlockID = set()
+        self.matches = set()
+    def MatchCount(self):
+        return len(self.startBlockID)
+    def AddMatch(self,match, blockID):
+        self.matches.add(match)
+        self.startBlockID |= blockID
+    
+        
 
 if __name__ == "__main__":
     testText = "Ополченцы сбили два украинских Су-25 в Донецкой области. Об этом сообщили в штабе антитеррористического центра. Инцидент произошел в районе Саур-Могилы, где штурмовики выполняли боевые задачи. Информации о судьбе пилотов пока нет. Ранее 23 июля о двух сбитых самолетах сообщили ополченцы."
-    
+    anotherTest = "absjdfbnsdsdf"
+    #print SubstringGenerator.generate(anotherTest, 2)
+    print PermutationGenerator.generate("ABC")
