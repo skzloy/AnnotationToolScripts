@@ -64,12 +64,23 @@ class Article:
             
             if(blockSize <= size):
                 textBlock += word + ' '
+                if(wordCount == len(words) - 1):
+                    block = Block(textBlock, blockCount, wordCount)
+                    blocks.append(block)
+                    blockSize = len(word)
+                    textBlock = word + ' '
+                    blockCount += 1
+                    break
+                    
             else:
                 block = Block(textBlock, blockCount, wordCount)
                 blocks.append(block)
                 blockSize = len(word)
                 textBlock = word + ' '
                 blockCount += 1
+
+
+            
             BlockIDByWordCount[wordCount] = blockCount
             wordCount += 1
             
@@ -308,7 +319,7 @@ if __name__ == "__main__":
     pathToOutput = "C:\AnnotationToolScripts\AnnotationToolScripts\Output"
     articles = TextParser.GenerateArticlesFromFiles(pathToFiles)
     output = Output(articles)
-    #output.PrintBlocks(pathToOutput)
+    output.PrintBlocks(pathToOutput)
     #output.DrawBlockClasses(pathToOutput)
     #output.PrintWords(pathToOutput)
     output.PrintMatches(pathToOutput)
