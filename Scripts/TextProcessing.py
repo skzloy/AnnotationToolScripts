@@ -11,7 +11,7 @@ class TextProcessor:
     
     @staticmethod
     def WordCount(text):
-        onlyText = re.sub(r'[^Р-пр-џ]', ' ', text)
+        onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', ' ', text)
         return len(onlyText.split())
 
 class TextParser:
@@ -52,8 +52,8 @@ class Article:
 
     def GetBlocks(self, size):
         blocks = []
-        onlyText = re.sub(r'[^Р-пр-џ]', ' ', self.text)
-        words = onlyText.split(' ')
+        onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', ' ', self.text)
+        words = onlyText.split()
         blockCount = 1
         blockSize = 0
         textBlock = ''
@@ -61,30 +61,27 @@ class Article:
         BlockIDByWordCount = {}
         for word in words:
             blockSize += len(word)
-            
+
+            if(blockSize > size):
+                block = Block(textBlock, blockCount, wordCount)
+                blocks.append(block)
+                blockSize = len(word)
+                textBlock = ''
+                if(wordCount != len(words)-1):
+                    blockCount += 1
+
             if(blockSize <= size):
                 textBlock += word + ' '
-                if(wordCount == len(words) - 1):
+                if(wordCount == len(words)-1):
                     block = Block(textBlock, blockCount, wordCount)
                     blocks.append(block)
                     blockSize = len(word)
                     textBlock = word + ' '
-                    blockCount += 1
-                    break
-                    
-            else:
-                block = Block(textBlock, blockCount, wordCount)
-                blocks.append(block)
-                blockSize = len(word)
-                textBlock = word + ' '
-                blockCount += 1
 
-
-            
             BlockIDByWordCount[wordCount] = blockCount
             wordCount += 1
-            
-            
+
+           
         return blocks, BlockIDByWordCount
 
     def SetClassesToBlocks(self, blocks):
@@ -114,7 +111,7 @@ class Article:
         return blockClassByID
 
     def EstimateRealBlocks(self):
-        onlyText = re.sub(r'[^Р-пр-џ]', ' ', self.text)
+        onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', ' ', self.text)
         words = onlyText.split()
         wordCount = 0
         self.blockClassByID40
