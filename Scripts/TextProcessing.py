@@ -3,6 +3,7 @@
 import os, os.path
 import re
 from MatchFinder import *
+from Symmetry import *
 
 class TextProcessor:
     @staticmethod
@@ -265,6 +266,51 @@ class Output:
         file.write(output)
         file.close()
 
+    def PrintSymmetries(self, outFolder):
+        
+
+        for article in self.articles:
+            matches = ''
+            for block in article.blocks40:
+                matches += block.EspChar.ESP3.GroupID
+
+            fileName = outFolder + '/' + article.title + '_Symmetries40.txt'
+            self.__printSymmetries(fileName, matches)
+
+            matches = ''
+            for block in article.blocks50:
+                matches += block.EspChar.ESP3.GroupID
+            
+            fileName = outFolder + '/' + article.title + '_Symmetries50.txt'
+            self.__printSymmetries(fileName, matches)
+
+            matches = ''
+            for block in article.blocks60:
+                matches += block.EspChar.ESP3.GroupID
+            
+            fileName = outFolder + '/' + article.title + '_Symmetries60.txt'
+            self.__printSymmetries(fileName, matches)
+        
+        
+
+
+    def __printSymmetries(self, fileName, matches):
+        file = open(fileName, 'w')
+        output = ''
+        output += str(matches) + '\n\n'
+        mss = MatchesFinder.FindMatchesSubstring(matches)
+
+        extractor = SymmetryExractor(str(matches),mss)
+        symmetries = extractor.FindSimpleSymmetries()
+        for sym in symmetries:
+            output += str(sym.startPosition) + '\t'
+            output += sym.body + '\n'
+        
+
+        
+        file.write(output)
+        file.close()
+    
     def PrintMatches(self, outFolder):
         if not os.path.exists(outFolder):
             os.makedirs(outFolder)
@@ -316,8 +362,8 @@ if __name__ == "__main__":
     pathToOutput = "C:\AnnotationToolScripts\AnnotationToolScripts\Output"
     articles = TextParser.GenerateArticlesFromFiles(pathToFiles)
     output = Output(articles)
-    output.PrintBlocks(pathToOutput)
+    #output.PrintBlocks(pathToOutput)
     #output.DrawBlockClasses(pathToOutput)
     #output.PrintWords(pathToOutput)
-    output.PrintMatches(pathToOutput)
-    
+    #output.PrintMatches(pathToOutput)
+    output.PrintSymmetries(pathToOutput)

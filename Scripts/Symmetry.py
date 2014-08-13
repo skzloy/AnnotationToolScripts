@@ -13,8 +13,8 @@ class SymmetryExractor:
         #with non zero centers
         for center in xrange(1, len(self.source)):
             #right part
-            left1,sym1 = self.addNeighbors(center-1, center+1)
-            left2,sym2 = self.addNeighbors(center-1, center+2)
+            left1,sym1,e1 = self.addNeighbors(center-1, center+1,0)
+            left2,sym2,e2 = self.addNeighbors(center-1, center+2,0)
             if len(sym1) > 2:
                 s = Symmetry(sym1, left1)
                 symmetries.append(s)
@@ -24,9 +24,12 @@ class SymmetryExractor:
 
         return symmetries
 
-    def addNeighbors(self, left, right):
+    def addNeighbors(self, left, right, errorLevel):
         if left < 0 or right > len(self.source)-1:
-            return left+1,self.source[left+1:right]
+            return left+errorLevel,self.source[left+errorLevel:right-errorLevel], 0
+
+        if(errorLevel > 3):
+            return left+errorLevel , self.source[left+errorLevel:right-errorLevel] , 0
 
         #tempBody = self.source[left:right+1]# + body + self.source[right]
         center = (right + left)/2
@@ -36,7 +39,6 @@ class SymmetryExractor:
         if (right - left) % 2 != 0:
             leftPart = self.source[left:center+1]
             rightPart = self.source[right:center:-1]
-            #tempBody = self.source[left:right+1]
         
         
        
@@ -51,9 +53,16 @@ class SymmetryExractor:
             for permutedString in possiblePermutations:
                 permutedError = 1.0 * levenshtein(leftPart, permutedString)/(right - left)
                 if(permutedError > 0.3):
-                    return left,self.source[left+1:right]
+                    if(errorLevel < 3):
+                        return self.addNeighbors(left-1, right+1, errorLevel + 1 )
+                    else:
+                        return left,self.source[left+1:right], errorLevel
+                else:
+                    return self.addNeighbors(left-1, right+1, errorLevel - 1 )
+
+            return self.addNeighbors(left-1, right+1, errorLevel + 1 )
         
-        return self.addNeighbors(left-1, right+1 )
+        return self.addNeighbors(left-1, right+1, errorLevel )
         
             
 
