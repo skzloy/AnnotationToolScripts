@@ -8,6 +8,26 @@ class EspersanCharacteristic:
         self.ESP5 = ESP5(self.ESP6)
         self.ESP3 = ESP3(self.ESP6)
 
+class CharToESP6Groupd:
+    @staticmethod
+    def transform(letter):
+        letter = letter.lower()
+        result = '0'
+        if(letter in 'птк'):
+            result = '1'
+        elif(letter in 'сшфцхщ'):
+            result = '2'
+        elif(letter in 'бдг'):
+            result = '3'
+        elif(letter in 'взж'):
+            result = '4'
+        elif(letter in 'мн'):
+            result = '5'
+        elif(letter in 'лрй'):
+            result = '6'
+        return result
+            
+
 class ESP6:
     def __init__(self, text):
         c = Counter(text.lower())
@@ -153,14 +173,14 @@ class MatchesFinder:
         for j in range(2,5):
             for i in range(0, len(originalString)-j):
                 substringToSearch = originalString[i:i+j]
-
+                #print "subs len %d startPosition %d len %d" % (j, i, len(originalString))
                 if substringToSearch in usedSubstrings:
                     continue
 
                 usedSubstrings.add(substringToSearch)
                 stringToSearchIn = originalString[i+j:]
                 
-                allSubstrings = SubstringGenerator.generate(stringToSearchIn, 2)
+                allSubstrings = SubstringGenerator.generate(stringToSearchIn, j, j + 2)
                 possiblePermutations = PermutationGenerator.generate(substringToSearch)
                 matchCount = 0
                 for string in allSubstrings:
@@ -214,12 +234,13 @@ class PermutationGenerator:
 
 class SubstringGenerator:
     @staticmethod
-    def generate(string, minStringLen):
+    def generate(string, minStringLen, maxLen):
         res = []
         for start in xrange(0,len(string)):
             for end in xrange(start,len(string)):
                 posibleSubstring = string[start:end]
-                if(len(posibleSubstring) >= minStringLen):
+                ln = len(posibleSubstring)
+                if ln >= minStringLen and ln <= maxLen:
                     res.append(posibleSubstring)
         return res
 
@@ -237,9 +258,12 @@ class MatchingSubstring:
         
 
 if __name__ == "__main__":
-    testText = "Ополченцы сбили два украинских Су-25 в Донецкой области. Об этом сообщили в штабе антитеррористического центра. Инцидент произошел в районе Саур-Могилы, где штурмовики выполняли боевые задачи. Информации о судьбе пилотов пока нет. Ранее 23 июля о двух сбитых самолетах сообщили ополченцы."
-    anotherTest = "jjmoeeeenjmjiheoeieogokijed"
-    #print SubstringGenerator.generate(anotherTest, 2)
-    matches = MatchesFinder.FindMatchesSubstring(anotherTest)
-    for match in matches:
-        print match.substring + ' ' + str(match.startBlockID) + ' ' + str(match.matches)
+    text = "Ополченцысбилидваукраинских"
+
+    print ''.join([CharToESP6Groupd.transform(l) for l in text])
+##    testText = "Ополченцы сбили два украинских Су-25 в Донецкой области. Об этом сообщили в штабе антитеррористического центра. Инцидент произошел в районе Саур-Могилы, где штурмовики выполняли боевые задачи. Информации о судьбе пилотов пока нет. Ранее 23 июля о двух сбитых самолетах сообщили ополченцы."
+##    anotherTest = "jjmoeeeenjmjiheoeieogokijed"
+##    #print SubstringGenerator.generate(anotherTest, 2)
+##    matches = MatchesFinder.FindMatchesSubstring(anotherTest)
+##    for match in matches:
+##        print match.substring + ' ' + str(match.startBlockID) + ' ' + str(match.matches)

@@ -164,7 +164,7 @@ class Block:
     	return other + self.signWordRation
     
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class Output:
     def __init__(self, articles):
@@ -270,42 +270,45 @@ class Output:
         
 
         for article in self.articles:
-            matches = ''
-            for block in article.blocks40:
-                matches += block.EspChar.ESP3.GroupID
+##            matches = ''
+##            for block in article.blocks40:
+##                matches += block.EspChar.ESP3.GroupID
 
-            fileName = outFolder + '/' + article.title + '_Symmetries40.txt'
-            self.__printSymmetries(fileName, matches)
+            fileName = outFolder + '/' + article.title + '_Symmetries.txt'
+            self.__printSymmetries(fileName, article.text)
 
-            matches = ''
-            for block in article.blocks50:
-                matches += block.EspChar.ESP3.GroupID
-            
-            fileName = outFolder + '/' + article.title + '_Symmetries50.txt'
-            self.__printSymmetries(fileName, matches)
-
-            matches = ''
-            for block in article.blocks60:
-                matches += block.EspChar.ESP3.GroupID
-            
-            fileName = outFolder + '/' + article.title + '_Symmetries60.txt'
-            self.__printSymmetries(fileName, matches)
+##            matches = ''
+##            for block in article.blocks50:
+##                matches += block.EspChar.ESP3.GroupID
+##            
+##            fileName = outFolder + '/' + article.title + '_Symmetries50.txt'
+##            self.__printSymmetries(fileName, matches)
+##
+##            matches = ''
+##            for block in article.blocks60:
+##                matches += block.EspChar.ESP3.GroupID
+##            
+##            fileName = outFolder + '/' + article.title + '_Symmetries60.txt'
+##            self.__printSymmetries(fileName, matches)
         
         
 
 
-    def __printSymmetries(self, fileName, matches):
+    def __printSymmetries(self, fileName, text):
         file = open(fileName, 'w')
         output = ''
-        output += str(matches) + '\n\n'
-        extractor = SymmetryExractor(str(matches))
+
+        transformedText = ''.join([CharToESP6Groupd.transform(l) for l in text.lower()])
+
+        extractor = SymmetryExractor(transformedText)
         symmetries = extractor.FindSimpleSymmetries()
         for sym in symmetries:
             output += str(sym.startPosition) + '\t'
-            output += sym.body + '\n'
-        
-
-        
+            output += sym.body.replace('0','') + '\t'
+            output += sym.leftBody.replace('0','') + '\t'
+            output += sym.center + '\t'
+            output += sym.rightBody.replace('0','') + '\t'
+            output += text[sym.startPosition:sym.startPosition+(len(sym.body))] + '\n'
         file.write(output)
         file.close()
     
@@ -363,5 +366,5 @@ if __name__ == "__main__":
     #output.PrintBlocks(pathToOutput)
     #output.DrawBlockClasses(pathToOutput)
     #output.PrintWords(pathToOutput)
-    output.PrintMatches(pathToOutput)
-    #output.PrintSymmetries(pathToOutput)
+    #output.PrintMatches(pathToOutput)
+    output.PrintSymmetries(pathToOutput)
