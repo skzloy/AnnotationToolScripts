@@ -164,7 +164,7 @@ class Block:
     	return other + self.signWordRation
     
 
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 class Output:
     def __init__(self, articles):
@@ -298,9 +298,7 @@ class Output:
         file = open(fileName, 'w')
         output = ''
         output += str(matches) + '\n\n'
-        mss = MatchesFinder.FindMatchesSubstring(matches)
-
-        extractor = SymmetryExractor(str(matches),mss)
+        extractor = SymmetryExractor(str(matches))
         symmetries = extractor.FindSimpleSymmetries()
         for sym in symmetries:
             output += str(sym.startPosition) + '\t'
@@ -358,12 +356,12 @@ class Output:
 
         
 if __name__ == "__main__":
-    pathToFiles = "C:\AnnotationToolScripts\Data"
+    pathToFiles = "C:\AnnotationToolScripts\AnnotationToolScripts\Data"
     pathToOutput = "C:\AnnotationToolScripts\AnnotationToolScripts\Output"
     articles = TextParser.GenerateArticlesFromFiles(pathToFiles)
     output = Output(articles)
     #output.PrintBlocks(pathToOutput)
     #output.DrawBlockClasses(pathToOutput)
     #output.PrintWords(pathToOutput)
-    #output.PrintMatches(pathToOutput)
-    output.PrintSymmetries(pathToOutput)
+    output.PrintMatches(pathToOutput)
+    #output.PrintSymmetries(pathToOutput)

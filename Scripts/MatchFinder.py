@@ -149,9 +149,15 @@ class MatchesFinder:
                         
 
         #replacements with permutations
+        usedSubstrings = set()
         for j in range(2,5):
             for i in range(0, len(originalString)-j):
                 substringToSearch = originalString[i:i+j]
+
+                if substringToSearch in usedSubstrings:
+                    continue
+
+                usedSubstrings.add(substringToSearch)
                 stringToSearchIn = originalString[i+j:]
                 
                 allSubstrings = SubstringGenerator.generate(stringToSearchIn, 2)
@@ -173,6 +179,7 @@ class MatchesFinder:
                                 ms = matches[substringToSearch]
                                 startBlockID = [m.start()+1 for m in re.finditer(string, originalString)]
                                 ms.AddMatch(string, set(startBlockID))
+                            break
                      
                 
         #permutations

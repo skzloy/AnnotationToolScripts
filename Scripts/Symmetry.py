@@ -4,9 +4,34 @@ from MatchFinder import *
 class SymmetryExractor:
     def __init__(self, source):
         self.source = source
+        self.matches = MatchesFinder.FindMatchesSubstring(source)
+        self.MapMatches()
 
-    def Extract(self):
-        return self.source
+    def MapMatches(self):
+        self.matchesMap = {}
+        counter = 0
+        
+        for matchSubstring in self.matches:
+            matchID = "#%(count)d#" % {"count":counter}
+            if matchSubstring.substring not in self.matchesMap.keys():
+                self.matchesMap[matchSubstring.substring] = matchID
+            for match in matchSubstring.matches:
+                if(match not in self.matchesMap.keys()):
+                    self.matchesMap[match] = matchID
+                else:
+                    oldMatchID = self.matchesMap[match]
+                    self.matchesMap[matchSubstring.substring] = oldMatchID
+            counter += 1
+
+                
+    def TransformSource(self):
+        self.transformedSource = self.source
+        for k, v in self.matchesMap.iteritems():
+            self.transformedSource = self.transformedSource.replace(k, v)
+
+        print self.source
+        print self.matchesMap
+        print self.transformedSource
 
     def FindSimpleSymmetries(self):
         symmetries = []
@@ -26,10 +51,10 @@ class SymmetryExractor:
 
     def addNeighbors(self, left, right, errorLevel):
         if left < 0 or right > len(self.source)-1:
-            return left+errorLevel,self.source[left+errorLevel:right-errorLevel], 0
+            return left+errorLevel+1,self.source[left+errorLevel+1:right-errorLevel], 0
 
         if(errorLevel > 3):
-            return left+errorLevel , self.source[left+errorLevel:right-errorLevel] , 0
+            return left+errorLevel+1 , self.source[left+errorLevel+1:right-errorLevel] , 0
 
         #tempBody = self.source[left:right+1]# + body + self.source[right]
         center = (right + left)/2
@@ -56,13 +81,16 @@ class SymmetryExractor:
                     if(errorLevel < 3):
                         return self.addNeighbors(left-1, right+1, errorLevel + 1 )
                     else:
-                        return left,self.source[left+1:right], errorLevel
+                        return left+errorLevel+1,self.source[left+errorLevel+1:right-errorLevel], 0
                 else:
-                    return self.addNeighbors(left-1, right+1, errorLevel - 1 )
+                    if(errorLevel > 0):
+                        errorLevel -= 1
+                    return self.addNeighbors(left-1, right+1, errorLevel )
 
             return self.addNeighbors(left-1, right+1, errorLevel + 1 )
-        
-        return self.addNeighbors(left-1, right+1, errorLevel )
+        if(errorLevel > 0):
+            errorLevel -= 1
+        return self.addNeighbors(left-1, right+1, errorLevel)
         
             
 
@@ -80,13 +108,15 @@ class Symmetry:
 if __name__ == "__main__":
     example1 = "jpjppjpp"
     ex2 = "jjmoeeeenjmjiheoeieogokijed"
+    print ex2
     extractor = SymmetryExractor(ex2)
-    print extractor.Extract()
+    #extractor.TransformSource()
     for sym in extractor.FindSimpleSymmetries():
          print sym
 
+    print example1
     extractor2 = SymmetryExractor(example1)
-    print extractor2.Extract()
+    #extractor2.TransformSource()
        
     for sym in extractor2.FindSimpleSymmetries():
          print sym
