@@ -111,14 +111,38 @@ class Article:
 
         return blockClassByID
 
+    def ProcessParagraphs(self, paragraphs):
+        self.paragraphs = []
+        i = 0
+        while i < len(paragraphs):
+            currentPar = paragraphs[i]
+
+            if( i < len(paragraphs) - 1):
+                nextPar = paragraphs[i + 1]
+                if(nextPar.classID > 2 and currentPar.classID  >2):
+                    currentPar.AddParagraph(nextPar)
+                    i = i + 1
+                elif(nextPar.classID < 3 and currentPar.classID  < 3):
+                    currentPar.AddParagraph(nextPar)
+                    i = i + 1
+
+                self.paragraphs.append(currentPar)
+            i += 1
+
+##        for p in self.paragraphs:
+##            print p
+    
     def EstimateRealBlocks(self):
         onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', ' ', self.text)
         words = onlyText.split()
         wordCount = 0
+        position = 0
         self.blockClassByID40
         self.blockClassByID50
         self.blockClassByID60
         self.words = []
+        paragraphs = []
+        prevClass = -1
         for word in words:
             wordClass40 = self.GetClassForWord(wordCount, self.BlockIDByWordCount40, self.blockClassByID40)
             wordClass50 = self.GetClassForWord(wordCount, self.BlockIDByWordCount50, self.blockClassByID50)
@@ -126,10 +150,79 @@ class Article:
             customWord = Word(word, wordCount, wordClass40, wordClass50, wordClass60)
             self.words.append(customWord)
             wordCount += 1
+            
+
+            if(wordCount > 1):
+                if prevClass == customWord.wordClass:
+                    paragraph.AddWord(word)
+                else:
+                    paragraphs.append(paragraph)
+                    paragraph = Paragraph(word, customWord.wordClass, position, position + len(word))
+                    prevClass = customWord.wordClass
+            else:
+                paragraph = Paragraph(word, customWord.wordClass, position, position + len(word))
+                prevClass = customWord.wordClass
+
+            position += len(word)
+
+        self.ProcessParagraphs(paragraphs)
 
     def GetClassForWord(self, wordCount, BlockIDByWordCount, blockClassByID):
         blockID = BlockIDByWordCount[wordCount]
         return blockClassByID[blockID]
+
+
+class Paragraph:
+    def __init__(self, text, classID, positionStart, positionEnd):
+        self.text = text
+        self.classID = classID
+        self.positionStart = positionStart
+        self.positionEnd = positionEnd
+        self.links = {}
+
+    def SetID(self, ID):
+        self.id = ID
+
+    def updateLink(self, paragraph):
+        if paragraph.id in self.links:
+            self.links[paragraph.id] += 1
+        else:
+            self.links[paragraph.id] = 1
+
+        paragraph.updateLink(self)
+
+    def __str__(self):
+        result = "Start: %s End: %s Id: %s \n" % (self.positionStart, self.positionEnd, self.id)
+        result += "Links: \n"
+
+        for k,v in self.links.iteritems():
+            result += "ID: %s Count: %s\n" % (k, v)
+        result += "Text: %s \n" % (self.text)
+        return result
+    
+    def AddWord(self, word):
+        self.text += ' ' + word
+        self.positionEnd += 1
+    
+    def AddParagraph(self, paragraph):
+        self.text += ' ' + paragraph.text
+        self.positionStart = min(self.positionStart, paragraph.positionStart)
+        self.positionEnd = max(self.positionEnd, paragraph.positionEnd)
+
+    def Contains(self, positionStart, positionEnd):
+        partLen = positionEnd - positionStart
+        if positionStart >= self.positionStart and positionEnd <= self.positionEnd:
+            return True
+        elif positionStart >= self.positionStart:
+            if self.positionEnd - positionStart > 0.6 * partLen:
+                return True
+        elif positionEnd <= self.positionEnd:
+            if positionEnd - self.positionStart > 0.6 * partLen:
+                return True
+
+        return False
+        
+
 
 class Word:
     def __init__(self, word, position, class40, class50, class60):
@@ -311,6 +404,50 @@ class Output:
             output += text[sym.startPosition:sym.startPosition+(len(sym.body))] + '\n'
         file.write(output)
         file.close()
+
+    def PrintMatchesOfSonorString(self, outFolder):
+        if not os.path.exists(outFolder):
+            os.makedirs(outFolder)
+
+        for article in self.articles:
+            fileName = outFolder + '/' + article.title + '_SonorityMatches.txt'
+            self._printMatchesOfSonorString(fileName, article)
+
+    def _printMatchesOfSonorString(self, fileName, article):
+        transformedText = ''.join([CharToESP6Groupd.transform(l) for l in article.text.lower()])
+        file = open(fileName, 'w')
+        output = ''
+        
+        output += str(transformedText) + '\n\n'
+        mss = MatchesFinder.FindMatchesSubstringOfSonorString(transformedText, 10, 20)
+
+        
+        for ms in mss:
+            linkedPars = []
+            for pos in matchSubstring.startBlockID:
+                for parag in article.paragraphs:
+                    if parag.Contains(pos, pos + len(matchSubstring.substring)):
+                        linkedPars.append(parag)
+
+            if len(linkedPars) > 1:
+                for j in xrange(1, len(linkedPars)):
+                    linkedPars[0].updateLink(linkedPars[j])
+                        
+        for p in article.paragraphs:
+            output += p
+##        for matchSubstring in mss:
+##            
+##            output += matchSubstring.substring + '\t'
+##            output += str(matchSubstring.MatchCount()) + '\t'
+##            output += str(matchSubstring.matches) + '\t'
+##            output += str(matchSubstring.startBlockID) + '\n'
+            
+        
+        file.write(output)
+        file.close()
+
+    def _mapMatchesToParagraphs(self, matches):
+        self.paragraphs
     
     def PrintMatches(self, outFolder):
         if not os.path.exists(outFolder):
@@ -345,7 +482,7 @@ class Output:
         
             
         output += str(matches) + '\n\n'
-        mss = MatchesFinder.FindMatchesSubstring(matches)
+        mss = MatchesFinder.FindMatchesSubstring(matches, 2, 5)
         for matchSubstring in mss:
             
             output += matchSubstring.substring + '\t'
@@ -366,5 +503,6 @@ if __name__ == "__main__":
     #output.PrintBlocks(pathToOutput)
     #output.DrawBlockClasses(pathToOutput)
     #output.PrintWords(pathToOutput)
+    output.PrintMatchesOfSonorString(pathToOutput)
     #output.PrintMatches(pathToOutput)
-    output.PrintSymmetries(pathToOutput)
+    #output.PrintSymmetries(pathToOutput)
