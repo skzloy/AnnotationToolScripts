@@ -153,19 +153,19 @@ class Article:
             customWord = Word(word, wordCount, wordClass40, wordClass50, wordClass60)
             self.words.append(customWord)
             wordCount += 1
-
+            position += len(word)
             if (wordCount > 1):
                 if prevClass == customWord.wordClass:
                     paragraph.AddWord(word)
+                    if wordCount == len(words):
+                        paragraphs.append(paragraph)
                 else:
                     paragraphs.append(paragraph)
                     paragraph = Paragraph(word, customWord.wordClass, position, position + len(word))
                     prevClass = customWord.wordClass
             else:
-                paragraph = Paragraph(word, customWord.wordClass, position, position + len(word))
+                paragraph = Paragraph(word, customWord.wordClass, 0, len(word))
                 prevClass = customWord.wordClass
-
-            position += len(word)
 
         self.ProcessParagraphs(paragraphs)
 
@@ -206,7 +206,7 @@ class Paragraph:
 
     def AddWord(self, word):
         self.text += ' ' + word
-        self.positionEnd += 1
+        self.positionEnd += len(word)
 
     def AddParagraph(self, paragraph):
         self.text += ' ' + paragraph.text
@@ -365,28 +365,9 @@ class Output:
 
     def PrintSymmetries(self, outFolder):
 
-
         for article in self.articles:
-            # #            matches = ''
-            ##            for block in article.blocks40:
-            ##                matches += block.EspChar.ESP3.GroupID
-
             fileName = outFolder + '/' + article.title + '_Symmetries.txt'
             self.__printSymmetries(fileName, article.text)
-
-        # #            matches = ''
-        ##            for block in article.blocks50:
-        ##                matches += block.EspChar.ESP3.GroupID
-        ##
-        ##            fileName = outFolder + '/' + article.title + '_Symmetries50.txt'
-        ##            self.__printSymmetries(fileName, matches)
-        ##
-        ##            matches = ''
-        ##            for block in article.blocks60:
-        ##                matches += block.EspChar.ESP3.GroupID
-        ##
-        ##            fileName = outFolder + '/' + article.title + '_Symmetries60.txt'
-        ##            self.__printSymmetries(fileName, matches)
 
 
     def __printSymmetries(self, fileName, text):
@@ -416,13 +397,15 @@ class Output:
             self._printMatchesOfSonorString(fileName, article)
 
     def _printMatchesOfSonorString(self, fileName, article):
-        transformedText = ''.join([CharToESP6Groupd.transform(l) for l in article.text.lower()])
+        onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', '', article.text.lower())
+        onlyText = onlyText.replace(' ', '')
+        transformedText = ''.join([CharToESP6Groupd.transform(l) for l in onlyText])
         file = open(fileName, 'w')
         output = ''
 
-        output += str(transformedText) + '\n\n'
+        output += str(transformedText.replace("0","")) + '\n\n'
         #mss = MatchesFinder.FindMatchesSubstringOfSonorString(transformedText, 29, 30)
-        mss = MatchesFinder.FindMatchesSubstringOfSonorStringOnTries(transformedText, 20, 30)
+        mss = MatchesFinder.FindMatchesSubstringOfSonorStringOnTries(transformedText, 15, 30)
 
         for ms in mss:
             output += ms.substring + '\t'
@@ -444,7 +427,9 @@ class Output:
                         linkedPars[i].updateLink(linkedPars[j])
 
         for p in article.paragraphs:
+            output += '\n'
             output += str(p)
+            output += '\n'
 
 
         file.write(output)

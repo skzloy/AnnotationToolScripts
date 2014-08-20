@@ -39,6 +39,6 @@ def levenshtein(source, target):
 
         
 if __name__ == "__main__":
-    str1 = "medo"
-    str2 = "jejj"
+    str1 = "253265163452"
+    str2 = "11626533452"
     print levenshtein(str1, str2)

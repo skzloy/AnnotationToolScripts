@@ -190,7 +190,7 @@ class MatchesFinder:
                 usedSubstrings.add(substringToSearch)
                 stringToSearchIn = originalString[i+j:]
                 
-                allSubstrings = SubstringGenerator.generate(stringToSearchIn, j - 2, j + 2, usedIndices)
+                allSubstrings = SubstringGenerator.generate(stringToSearchIn, j - 2, j + 2)
                 
                 possiblePermutations = PermutationGenerator.generate(substringToSearch)
                 matchCount = 0
@@ -305,19 +305,13 @@ class MatchesFinder:
 
 
         #replacements with permutations
-        usedSubstrings = set()
-        usedIndices = []
         
         for j in range(minSize,maxSize):
 
             print time.asctime( time.localtime(time.time()) )
             print "%s of %s" % (j - minSize, maxSize - minSize )
 
-            allSubstrings = SubstringGenerator.generate(originalString, j - 2, j + 2, usedIndices)
 
-            trie = TrieNode()
-            for word in allSubstrings:
-                trie.insert( word )
 
             for i in range(0, len(originalString)-j):
 
@@ -325,8 +319,15 @@ class MatchesFinder:
                 #     continue
                 
                 substringToSearch = originalString[i:i+j]
-                results = LeviOnTries.search( trie, substringToSearch, math.floor(len(substringToSearch) * 0.3) )
-                # ss = substringToSearch.replace('0','')
+                ss = substringToSearch.replace('0','')
+                allSubstrings = SubstringGenerator.generate(originalString[i+j:], j - 2, j + 2)
+
+                trie = TrieNode()
+                for word in allSubstrings:
+                    trie.insert( word )
+
+                results = LeviOnTries.search( trie, substringToSearch, math.floor(len(ss) * 0.5) )
+
                 #
                 # if len(ss) == 0:
                 #     continue
@@ -335,27 +336,26 @@ class MatchesFinder:
                 #     continues
                 #
                 # usedSubstrings.add(substringToSearch)
-                stringToSearchIn = originalString[i+j:]
+                # stringToSearchIn = originalString[i+j:]
                 # allSubstrings = SubstringGenerator.generate(stringToSearchIn, j - 2, j + 2, usedIndices)
                 
 
                 # possiblePermutations = PermutationGenerator.CustomPermutations(ss)
-                matchCount = 0
 
                 for r in results:
                     string = r[0]
                     # stringToSearch = string.replace('0','')
 
-                    if(substringToSearch not in matches):
+                    if(ss not in matches):
                         startBlockID = [m.start() for m in re.finditer(string, originalString)]
                         startBlockID += [m.start() for m in re.finditer(substringToSearch, originalString)]
-                        ms = MatchingSubstring(substringToSearch)
-                        ms.AddMatch(string, set(startBlockID))
-                        matches[substringToSearch] = ms
+                        ms = MatchingSubstring(ss)
+                        ms.AddMatch(string.replace('0',''), set(startBlockID))
+                        matches[ss] = ms
                     else:
-                        ms = matches[substringToSearch]
+                        ms = matches[ss]
                         startBlockID = [m.start() for m in re.finditer(string, originalString)]
-                        ms.AddMatch(string, set(startBlockID))
+                        ms.AddMatch(string.replace('0',''), set(startBlockID))
                     break
 
         for match in matches.values():
@@ -394,7 +394,7 @@ class MatchesFinder:
             print time.asctime( time.localtime(time.time()) )
             print "%s of %s" % (j - minSize, maxSize - minSize )
 
-            allSubstrings = SubstringGenerator.generate(originalString, j - 2, j + 2, usedIndices)
+            allSubstrings = SubstringGenerator.generate(originalString, j - 2, j + 2)
 
             for i in range(0, len(originalString)-j):
 
@@ -486,15 +486,11 @@ class PermutationGenerator:
 
 class SubstringGenerator:
     @staticmethod
-    def generate(string, minStringLen, maxLen, usedIndices):
+    def generate(string, minStringLen, maxLen):
         res = []
-        hasUsedIndices = False
-        if len(usedIndices) > 0:
-            hasUsedIndices = True
+
         for start in xrange(0,len(string)):
-            # if hasUsedIndices:
-            #     if start in usedIndices:
-            #         continue
+
             for end in xrange(start,len(string)):
                 if end - start < minStringLen:
                     continue
@@ -502,21 +498,6 @@ class SubstringGenerator:
                 if end - start > maxLen:
                     break
 
-                # if hasUsedIndices:
-                #     if end in usedIndices:
-                #         continue
-                #
-                # containsBlackHole = False
-                #
-                # if hasUsedIndices:
-                #     for content in xrange(start, end + 1):
-                #         if content in usedIndices:
-                #             containsBlackHole = True
-                #             break
-                #
-                # if containsBlackHole:
-                #     continue
-                
                 posibleSubstring = string[start:end]
                 ln = len(posibleSubstring)
                 if ln >= minStringLen and ln <= maxLen:
