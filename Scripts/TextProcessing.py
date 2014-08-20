@@ -326,6 +326,71 @@ class Output:
         plt.savefig(filename)
         plt.clf()
 
+    def DrawESPChars(self, outFolder):
+        if not os.path.exists(outFolder):
+            os.makedirs(outFolder)
+
+        for article in self.articles:
+            fileName = outFolder + '/' + article.title + '_ESP3_BlockLen40.png'
+            title = ' BlockSize - 40'
+            self.__drawESP3Graphs(fileName, article.blocks40, title)
+            title = ' BlockSize - 50'
+            fileName = outFolder + '/' + article.title + '_ESP3_BlockLen50.png'
+            self.__drawESP3Graphs(fileName, article.blocks50, title)
+            fileName = outFolder + '/' + article.title + '_ESP3_BlockLen60.png'
+            title = ' BlockSize - 60'
+            self.__drawESP3Graphs(fileName, article.blocks60, title)
+
+            fileName = outFolder + '/' + article.title + '_ESP3_Indexed_BlockLen40.png'
+            title = ' BlockSize - 40'
+            self.__drawESP3IndexedGraphs(fileName, article.blocks40, title)
+            title = ' BlockSize - 50'
+            fileName = outFolder + '/' + article.title + '_ESP3_Indexed_BlockLen50.png'
+            self.__drawESP3IndexedGraphs(fileName, article.blocks50, title)
+            fileName = outFolder + '/' + article.title + '_ESP3_Indexed_BlockLen60.png'
+            title = ' BlockSize - 60'
+            self.__drawESP3IndexedGraphs(fileName, article.blocks60, title)
+
+    def __drawESP3Graphs(self, filename, blocks, title):
+        e1Value = []
+        e2Value = []
+        e3Value = []
+        blockID = []
+        for block in blocks:
+            blockID.append(block.ID)
+            e1Value.append(block.EspChar.ESP3.E1)
+            e2Value.append(block.EspChar.ESP3.E2)
+            e3Value.append(block.EspChar.ESP3.E3)
+        plt.figure(figsize=(30, 10), dpi=100)
+        plt.title(title.encode('utf-8'))
+        plt.xlabel('Blocks Number'.encode('utf-8'))
+        plt.plot(blockID, e1Value, 'r')
+        plt.plot(blockID, e2Value, 'b')
+        plt.plot(blockID, e3Value, 'g')
+        plt.grid(True)
+        plt.savefig(filename, dpi=100)
+        plt.clf()
+
+    def __drawESP3IndexedGraphs(self, filename, blocks, title):
+        e1Value = []
+        e2Value = []
+        e3Value = []
+        blockID = []
+        for block in blocks:
+            blockID.append(block.ID)
+            e1Value.append(block.EspChar.ESP3.EP1)
+            e2Value.append(block.EspChar.ESP3.EP2)
+            e3Value.append(block.EspChar.ESP3.EP3)
+        plt.figure(figsize=(30, 10), dpi=100)
+        plt.title(title.encode('utf-8'))
+        plt.xlabel('Blocks Number'.encode('utf-8'))
+        plt.plot(blockID, e1Value, 'r')
+        plt.plot(blockID, e2Value, 'b')
+        plt.plot(blockID, e3Value, 'g')
+        plt.grid(True)
+        plt.savefig(filename,dpi=100)
+        plt.clf()
+
     def PrintBlocks(self, outFolder):
         if not os.path.exists(outFolder):
             os.makedirs(outFolder)
@@ -487,6 +552,7 @@ if __name__ == "__main__":
     output = Output(articles)
     output.PrintBlocks(pathToOutput)
     output.DrawBlockClasses(pathToOutput)
+    output.DrawESPChars(pathToOutput)
     output.PrintWords(pathToOutput)
     output.PrintMatchesOfSonorString(pathToOutput)
     output.PrintMatches(pathToOutput)
