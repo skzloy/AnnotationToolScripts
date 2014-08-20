@@ -4,41 +4,43 @@ import os, os.path
 import re
 from MatchFinder import *
 from Symmetry import *
+import matplotlib.pyplot as plt
 
 class TextProcessor:
     @staticmethod
     def SignCount(text):
         return len(text.replace(' ', ''))
-    
+
     @staticmethod
     def WordCount(text):
         onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', ' ', text)
         return len(onlyText.split())
 
+
 class TextParser:
     @staticmethod
     def GenerateArticlesFromFiles(pathToFolder):
-        #return set of articles
+        # return set of articles
         articles = []
         for subdir, dirs, files in os.walk(pathToFolder):
             for file in files:
-                filePath = subdir+'/'+file
+                filePath = subdir + '/' + file
                 articles.append(TextParser.GetArticle(filePath, file))
 
         return articles
 
-        
 
     @staticmethod
     def GetArticle(pathToFile, fileName):
-        fileObj = open(pathToFile,'r')
+        fileObj = open(pathToFile, 'r')
         article = Article(fileObj.read(), fileName)
         fileObj.close()
         return article
-        
 
 
 from operator import attrgetter
+
+
 class Article:
     def __init__(self, text, title):
         self.text = text
@@ -63,17 +65,17 @@ class Article:
         for word in words:
             blockSize += len(word)
 
-            if(blockSize > size):
+            if (blockSize > size):
                 block = Block(textBlock, blockCount, wordCount)
                 blocks.append(block)
                 blockSize = len(word)
                 textBlock = ''
-                if(wordCount != len(words)-1):
+                if (wordCount != len(words) - 1):
                     blockCount += 1
 
-            if(blockSize <= size):
+            if (blockSize <= size):
                 textBlock += word + ' '
-                if(wordCount == len(words)-1):
+                if (wordCount == len(words) - 1):
                     block = Block(textBlock, blockCount, wordCount)
                     blocks.append(block)
                     blockSize = len(word)
@@ -82,56 +84,57 @@ class Article:
             BlockIDByWordCount[wordCount] = blockCount
             wordCount += 1
 
-           
         return blocks, BlockIDByWordCount
 
     def SetClassesToBlocks(self, blocks):
-        maxRatio = 1.0 * max(blocks,key=attrgetter('signWordRation')).signWordRation
-        minRatio = 1.0 * min(blocks,key=attrgetter('signWordRation')).signWordRation
-        avgRatio = 1.0 * sum(blocks)/len(blocks)
-        measure = (maxRatio - minRatio)/avgRatio
+        maxRatio = 1.0 * max(blocks, key=attrgetter('signWordRation')).signWordRation
+        minRatio = 1.0 * min(blocks, key=attrgetter('signWordRation')).signWordRation
+        avgRatio = 1.0 * sum(blocks) / len(blocks)
+        measure = (maxRatio - minRatio) / avgRatio
         blockClassByID = {}
 
         for block in blocks:
             if block.signWordRation >= maxRatio - measure:
                 block.SetClass(4)
-                blockClassByID[block.ID]=4
+                blockClassByID[block.ID] = 4
             elif block.signWordRation > avgRatio:
                 block.SetClass(3)
-                blockClassByID[block.ID]=3
+                blockClassByID[block.ID] = 3
             elif block.signWordRation == avgRatio:
                 block.SetClass(2)
-                blockClassByID[block.ID]=2
+                blockClassByID[block.ID] = 2
             elif block.signWordRation >= minRatio + measure:
                 block.SetClass(1)
-                blockClassByID[block.ID]=1
+                blockClassByID[block.ID] = 1
             else:
                 block.SetClass(0)
-                blockClassByID[block.ID]=0
+                blockClassByID[block.ID] = 0
 
         return blockClassByID
 
     def ProcessParagraphs(self, paragraphs):
         self.paragraphs = []
         i = 0
+        paragraphID = 0
         while i < len(paragraphs):
             currentPar = paragraphs[i]
 
-            if( i < len(paragraphs) - 1):
+            if ( i < len(paragraphs) - 1):
                 nextPar = paragraphs[i + 1]
-                if(nextPar.classID > 2 and currentPar.classID  >2):
+                if (nextPar.classID > 2 and currentPar.classID > 2):
                     currentPar.AddParagraph(nextPar)
                     i = i + 1
-                elif(nextPar.classID < 3 and currentPar.classID  < 3):
+                elif (nextPar.classID < 3 and currentPar.classID < 3):
                     currentPar.AddParagraph(nextPar)
                     i = i + 1
-
+                currentPar.SetID(paragraphID)
+                paragraphID += 1
                 self.paragraphs.append(currentPar)
             i += 1
 
-##        for p in self.paragraphs:
-##            print p
-    
+        # #        for p in self.paragraphs:
+        ##            print p
+
     def EstimateRealBlocks(self):
         onlyText = re.sub(r'[^Р-пр-џ0-9A-Za-z]', ' ', self.text)
         words = onlyText.split()
@@ -150,9 +153,8 @@ class Article:
             customWord = Word(word, wordCount, wordClass40, wordClass50, wordClass60)
             self.words.append(customWord)
             wordCount += 1
-            
 
-            if(wordCount > 1):
+            if (wordCount > 1):
                 if prevClass == customWord.wordClass:
                     paragraph.AddWord(word)
                 else:
@@ -179,31 +181,33 @@ class Paragraph:
         self.positionStart = positionStart
         self.positionEnd = positionEnd
         self.links = {}
+        self.id = 0
 
     def SetID(self, ID):
         self.id = ID
 
     def updateLink(self, paragraph):
+        if paragraph.id == self.id:
+            return
         if paragraph.id in self.links:
             self.links[paragraph.id] += 1
         else:
             self.links[paragraph.id] = 1
 
-        paragraph.updateLink(self)
 
     def __str__(self):
         result = "Start: %s End: %s Id: %s \n" % (self.positionStart, self.positionEnd, self.id)
         result += "Links: \n"
 
-        for k,v in self.links.iteritems():
+        for k, v in self.links.iteritems():
             result += "ID: %s Count: %s\n" % (k, v)
         result += "Text: %s \n" % (self.text)
         return result
-    
+
     def AddWord(self, word):
         self.text += ' ' + word
         self.positionEnd += 1
-    
+
     def AddParagraph(self, paragraph):
         self.text += ' ' + paragraph.text
         self.positionStart = min(self.positionStart, paragraph.positionStart)
@@ -214,14 +218,14 @@ class Paragraph:
         if positionStart >= self.positionStart and positionEnd <= self.positionEnd:
             return True
         elif positionStart >= self.positionStart:
-            if self.positionEnd - positionStart > 0.6 * partLen:
+            if self.positionEnd - positionStart >= 0.6 * partLen:
                 return True
+
         elif positionEnd <= self.positionEnd:
-            if positionEnd - self.positionStart > 0.6 * partLen:
+            if positionEnd - self.positionStart >= 0.6 * partLen:
                 return True
 
         return False
-        
 
 
 class Word:
@@ -232,13 +236,13 @@ class Word:
         self.class50 = class50
         self.class60 = class60
         self.wordClass = -1
-        if(self.class40 == self.class50):
+        if (self.class40 == self.class50):
             self.wordClass = self.class40
-        elif(self.class40 == self.class60):
+        elif (self.class40 == self.class60):
             self.wordClass = self.class40
-        elif(self.class50 == self.class60):
+        elif (self.class50 == self.class60):
             self.wordClass = self.class50
-        
+
 
 class Block:
     def __init__(self, block, blockID, startWordPosition):
@@ -254,10 +258,11 @@ class Block:
         self.blockClass = blockClass
 
     def __radd__(self, other):
-    	return other + self.signWordRation
-    
+        return other + self.signWordRation
 
-#import matplotlib.pyplot as plt
+
+
+
 
 class Output:
     def __init__(self, articles):
@@ -277,7 +282,7 @@ class Output:
             fileName = outFolder + '/' + article.title + '_blocksClasses60.png'
             title = ' BlockSize - 60'
             self.__drawBlockClasses(fileName, article.blocks60, title)
-            
+
     def PrintWords(self, outFolder):
         if not os.path.exists(outFolder):
             os.makedirs(outFolder)
@@ -304,19 +309,19 @@ class Output:
                 passedWords += word.word + ' '
 
                 previousClass = currentClass
-            
+
             file.write(output)
             file.close()
-    
+
     def __drawBlockClasses(self, filename, blocks, title):
         classes = []
         blockID = []
         for block in blocks:
             blockID.append(block.ID)
             classes.append(block.blockClass)
-        plt.title(title.encode('utf-8') )
-        plt.xlabel('Blocks Number'.encode('utf-8') )
-        plt.ylabel('Class, 0 - ii, 1 - ie, 2 - e, 3 - ae, 4 - aa'.encode('utf-8') )
+        plt.title(title.encode('utf-8'))
+        plt.xlabel('Blocks Number'.encode('utf-8'))
+        plt.ylabel('Class, 0 - ii, 1 - ie, 2 - e, 3 - ae, 4 - aa'.encode('utf-8'))
         plt.plot(blockID, classes, 'r')
         plt.savefig(filename)
         plt.clf()
@@ -332,7 +337,7 @@ class Output:
             self.__printBlocks(fileName, article.blocks50)
             fileName = outFolder + '/' + article.title + '_blocks60.txt'
             self.__printBlocks(fileName, article.blocks60)
-           
+
 
     def __printBlocks(self, fileName, blocks):
         file = open(fileName, 'w')
@@ -345,9 +350,8 @@ class Output:
         output += 'Sign Word Ratio\t'
         output += 'Class\t'
         output += '\n'
-        
+
         for block in blocks:
-            
             output += str(block.ID) + '\t'
             output += block.text + '\t'
             output += str(block.wordCount) + '\t'
@@ -360,31 +364,29 @@ class Output:
         file.close()
 
     def PrintSymmetries(self, outFolder):
-        
+
 
         for article in self.articles:
-##            matches = ''
-##            for block in article.blocks40:
-##                matches += block.EspChar.ESP3.GroupID
+            # #            matches = ''
+            ##            for block in article.blocks40:
+            ##                matches += block.EspChar.ESP3.GroupID
 
             fileName = outFolder + '/' + article.title + '_Symmetries.txt'
             self.__printSymmetries(fileName, article.text)
 
-##            matches = ''
-##            for block in article.blocks50:
-##                matches += block.EspChar.ESP3.GroupID
-##            
-##            fileName = outFolder + '/' + article.title + '_Symmetries50.txt'
-##            self.__printSymmetries(fileName, matches)
-##
-##            matches = ''
-##            for block in article.blocks60:
-##                matches += block.EspChar.ESP3.GroupID
-##            
-##            fileName = outFolder + '/' + article.title + '_Symmetries60.txt'
-##            self.__printSymmetries(fileName, matches)
-        
-        
+        # #            matches = ''
+        ##            for block in article.blocks50:
+        ##                matches += block.EspChar.ESP3.GroupID
+        ##
+        ##            fileName = outFolder + '/' + article.title + '_Symmetries50.txt'
+        ##            self.__printSymmetries(fileName, matches)
+        ##
+        ##            matches = ''
+        ##            for block in article.blocks60:
+        ##                matches += block.EspChar.ESP3.GroupID
+        ##
+        ##            fileName = outFolder + '/' + article.title + '_Symmetries60.txt'
+        ##            self.__printSymmetries(fileName, matches)
 
 
     def __printSymmetries(self, fileName, text):
@@ -397,11 +399,11 @@ class Output:
         symmetries = extractor.FindSimpleSymmetries()
         for sym in symmetries:
             output += str(sym.startPosition) + '\t'
-            output += sym.body.replace('0','') + '\t'
-            output += sym.leftBody.replace('0','') + '\t'
+            output += sym.body.replace('0', '') + '\t'
+            output += sym.leftBody.replace('0', '') + '\t'
             output += sym.center + '\t'
-            output += sym.rightBody.replace('0','') + '\t'
-            output += text[sym.startPosition:sym.startPosition+(len(sym.body))] + '\n'
+            output += sym.rightBody.replace('0', '') + '\t'
+            output += text[sym.startPosition:sym.startPosition + (len(sym.body))] + '\n'
         file.write(output)
         file.close()
 
@@ -417,92 +419,90 @@ class Output:
         transformedText = ''.join([CharToESP6Groupd.transform(l) for l in article.text.lower()])
         file = open(fileName, 'w')
         output = ''
-        
-        output += str(transformedText) + '\n\n'
-        mss = MatchesFinder.FindMatchesSubstringOfSonorString(transformedText, 10, 20)
 
-        
+        output += str(transformedText) + '\n\n'
+        #mss = MatchesFinder.FindMatchesSubstringOfSonorString(transformedText, 29, 30)
+        mss = MatchesFinder.FindMatchesSubstringOfSonorStringOnTries(transformedText, 20, 30)
+
         for ms in mss:
+            output += ms.substring + '\t'
+            output += str(ms.MatchCount()) + '\t'
+            output += str(ms.matches) + '\t'
+            output += str(ms.startBlockID) + '\n'
+
             linkedPars = []
-            for pos in matchSubstring.startBlockID:
+            for pos in ms.startBlockID:
                 for parag in article.paragraphs:
-                    if parag.Contains(pos, pos + len(matchSubstring.substring)):
+                    if parag.Contains(pos, pos + len(ms.substring)):
                         linkedPars.append(parag)
+                        break
 
             if len(linkedPars) > 1:
-                for j in xrange(1, len(linkedPars)):
-                    linkedPars[0].updateLink(linkedPars[j])
-                        
+                for i in xrange(0, len(linkedPars)):
+                    for j in xrange(0, len(linkedPars)):
+                        if i == j: continue
+                        linkedPars[i].updateLink(linkedPars[j])
+
         for p in article.paragraphs:
-            output += p
-##        for matchSubstring in mss:
-##            
-##            output += matchSubstring.substring + '\t'
-##            output += str(matchSubstring.MatchCount()) + '\t'
-##            output += str(matchSubstring.matches) + '\t'
-##            output += str(matchSubstring.startBlockID) + '\n'
-            
-        
+            output += str(p)
+
+
         file.write(output)
         file.close()
 
     def _mapMatchesToParagraphs(self, matches):
         self.paragraphs
-    
+
     def PrintMatches(self, outFolder):
         if not os.path.exists(outFolder):
             os.makedirs(outFolder)
-            
+
         for article in self.articles:
             matches = ''
             for block in article.blocks40:
                 matches += block.EspChar.ESP3.GroupID
-                
+
             fileName = outFolder + '/' + article.title + '_MatchesForBlocks40.txt'
             self.__printMatches(fileName, matches)
 
             matches = ''
             for block in article.blocks50:
                 matches += block.EspChar.ESP3.GroupID
-            
+
             fileName = outFolder + '/' + article.title + '_MatchesForBlocks50.txt'
             self.__printMatches(fileName, matches)
 
             matches = ''
             for block in article.blocks60:
                 matches += block.EspChar.ESP3.GroupID
-            
+
             fileName = outFolder + '/' + article.title + '_MatchesForBlocks60.txt'
             self.__printMatches(fileName, matches)
 
     def __printMatches(self, fileName, matches):
         file = open(fileName, 'w')
         output = ''
-        
-        
-            
+
         output += str(matches) + '\n\n'
         mss = MatchesFinder.FindMatchesSubstring(matches, 2, 5)
         for matchSubstring in mss:
-            
             output += matchSubstring.substring + '\t'
             output += str(matchSubstring.MatchCount()) + '\t'
             output += str(matchSubstring.matches) + '\t'
             output += str(matchSubstring.startBlockID) + '\n'
-            
-        
+
         file.write(output)
         file.close()
 
-        
+
 if __name__ == "__main__":
     pathToFiles = "C:\AnnotationToolScripts\AnnotationToolScripts\Data"
     pathToOutput = "C:\AnnotationToolScripts\AnnotationToolScripts\Output"
     articles = TextParser.GenerateArticlesFromFiles(pathToFiles)
     output = Output(articles)
-    #output.PrintBlocks(pathToOutput)
-    #output.DrawBlockClasses(pathToOutput)
-    #output.PrintWords(pathToOutput)
+    output.PrintBlocks(pathToOutput)
+    output.DrawBlockClasses(pathToOutput)
+    output.PrintWords(pathToOutput)
     output.PrintMatchesOfSonorString(pathToOutput)
-    #output.PrintMatches(pathToOutput)
-    #output.PrintSymmetries(pathToOutput)
+    output.PrintMatches(pathToOutput)
+    output.PrintSymmetries(pathToOutput)

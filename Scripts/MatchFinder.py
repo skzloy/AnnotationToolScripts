@@ -1,5 +1,9 @@
 # -*- coding: cp1251 -*-
 from collections import Counter
+from TrieNode import *
+from LeviOnTries import *
+import math
+import time
 
 class EspersanCharacteristic:
     def __init__(self, block):
@@ -191,14 +195,13 @@ class MatchesFinder:
                 possiblePermutations = PermutationGenerator.generate(substringToSearch)
                 matchCount = 0
 
-                print str(len(allSubstrings))# + ' ' +  str(len(possiblePermutations)) 
                 for string in allSubstrings:
                     if string in substringToSearch:
                             continue
                     for permutedString in possiblePermutations:
                         
                         if (1.0*levenshtein(permutedString, string))/(len(substringToSearch)) <= 0.3:
-                            usedIndices += range[i,i+j]
+                            usedIndices += range(i,i+j)
                             if(substringToSearch not in matches):
                                 startBlockID = [m.start()+1 for m in re.finditer(string, originalString)]
                                 startBlockID += [m.start()+1 for m in re.finditer(substringToSearch, originalString)]
@@ -238,6 +241,128 @@ class MatchesFinder:
         return res
 
     @staticmethod
+    def is_visited(i, j, k, visited):
+        m = visited.get((i,j),-1)
+        if k>m:
+            visited[(i,j)] = k
+            return False
+        return True
+
+    @staticmethod
+    def fuzzy_compare(S1, S2, k, i = 0, j = 0, visited = None):
+        N1 = len(S1)
+        N2 = len(S2)
+        if visited is None:
+            visited = {}
+        while True:
+            if N1-i<=k and N2-j<=k:
+                return True
+            try:
+                if S1[i] == S2[j]:
+                    visited[(i,j)] = k
+                    i+=1
+                    j+=1
+                    continue
+            except IndexError:
+                return False
+            if k == 0:
+                return False
+            else:
+                if not MatchesFinder.is_visited(i+1, j, k-1, visited):
+                    if MatchesFinder.fuzzy_compare(S1, S2, k-1, i+1, j, visited):
+                        return True
+                if not MatchesFinder.is_visited(i, j+1, k-1, visited):
+                    if MatchesFinder.fuzzy_compare(S1, S2, k-1, i, j+1, visited):
+                        return True
+                if not MatchesFinder.is_visited(i+1, j+1, k-1, visited):
+                    if MatchesFinder.fuzzy_compare(S1, S2, k-1, i+1, j+1, visited):
+                        return True
+                return False
+
+    @staticmethod
+    def FindMatchesSubstringOfSonorStringOnTries(st, minSize, maxSize):
+        originalString = st
+        matches = {}
+        res = []
+        filteredOriginalString = originalString.replace('0','')
+        # clear matches
+        for j in range(minSize,maxSize):
+            for i in range(0, len(originalString)):
+                if(len(originalString) - i < j):
+                    break
+
+                substringToSearch = originalString[i:i+j]
+                ss = substringToSearch.replace('0','')
+
+                if (ss in filteredOriginalString) and (substringToSearch not in matches):
+                    matchCount = 0
+                    startBlockID = [m.start()+1 for m in re.finditer(substringToSearch, originalString)]
+                    matchCount = len(startBlockID)
+                    if(matchCount > 1) and (len(substringToSearch)>1):
+                        ms = MatchingSubstring(substringToSearch)
+                        ms.AddMatch(substringToSearch, set(startBlockID))
+                        matches[substringToSearch] = ms
+
+
+        #replacements with permutations
+        usedSubstrings = set()
+        usedIndices = []
+        
+        for j in range(minSize,maxSize):
+
+            print time.asctime( time.localtime(time.time()) )
+            print "%s of %s" % (j - minSize, maxSize - minSize )
+
+            allSubstrings = SubstringGenerator.generate(originalString, j - 2, j + 2, usedIndices)
+
+            trie = TrieNode()
+            for word in allSubstrings:
+                trie.insert( word )
+
+            for i in range(0, len(originalString)-j):
+
+                # if i in usedIndices:
+                #     continue
+                
+                substringToSearch = originalString[i:i+j]
+                results = LeviOnTries.search( trie, substringToSearch, math.floor(len(substringToSearch) * 0.3) )
+                # ss = substringToSearch.replace('0','')
+                #
+                # if len(ss) == 0:
+                #     continue
+                #print "subs len %d startPosition %d len %d" % (j, i, len(originalString))
+                # if substringToSearch in usedSubstrings:
+                #     continues
+                #
+                # usedSubstrings.add(substringToSearch)
+                stringToSearchIn = originalString[i+j:]
+                # allSubstrings = SubstringGenerator.generate(stringToSearchIn, j - 2, j + 2, usedIndices)
+                
+
+                # possiblePermutations = PermutationGenerator.CustomPermutations(ss)
+                matchCount = 0
+
+                for r in results:
+                    string = r[0]
+                    # stringToSearch = string.replace('0','')
+
+                    if(substringToSearch not in matches):
+                        startBlockID = [m.start() for m in re.finditer(string, originalString)]
+                        startBlockID += [m.start() for m in re.finditer(substringToSearch, originalString)]
+                        ms = MatchingSubstring(substringToSearch)
+                        ms.AddMatch(string, set(startBlockID))
+                        matches[substringToSearch] = ms
+                    else:
+                        ms = matches[substringToSearch]
+                        startBlockID = [m.start() for m in re.finditer(string, originalString)]
+                        ms.AddMatch(string, set(startBlockID))
+                    break
+
+        for match in matches.values():
+            res.append(match)
+        return res
+
+    @staticmethod
     def FindMatchesSubstringOfSonorString(st, minSize, maxSize):
         originalString = st
         matches = {}
@@ -251,62 +376,60 @@ class MatchesFinder:
 
                 substringToSearch = originalString[i:i+j]
                 ss = substringToSearch.replace('0','')
-                
+
                 if (ss in filteredOriginalString) and (substringToSearch not in matches):
-                    matchCount = 0
                     startBlockID = [m.start()+1 for m in re.finditer(substringToSearch, originalString)]
                     matchCount = len(startBlockID)
                     if(matchCount > 1) and (len(substringToSearch)>1):
                         ms = MatchingSubstring(substringToSearch)
                         ms.AddMatch(substringToSearch, set(startBlockID))
                         matches[substringToSearch] = ms
-                        
+
 
         #replacements with permutations
-        usedSubstrings = set()
         usedIndices = []
-        
-        for j in range(maxSize,minSize,-1):
-            
+
+        for j in range(minSize,maxSize):
+
+            print time.asctime( time.localtime(time.time()) )
+            print "%s of %s" % (j - minSize, maxSize - minSize )
+
+            allSubstrings = SubstringGenerator.generate(originalString, j - 2, j + 2, usedIndices)
+
             for i in range(0, len(originalString)-j):
 
-                if i in usedIndices:
-                    continue
-                
+
                 substringToSearch = originalString[i:i+j]
                 ss = substringToSearch.replace('0','')
-                #print "subs len %d startPosition %d len %d" % (j, i, len(originalString))
-                if substringToSearch in usedSubstrings:
+
+                if len(ss) == 0:
                     continue
-                
-                usedSubstrings.add(substringToSearch)
+
                 stringToSearchIn = originalString[i+j:]
-                
-                allSubstrings = SubstringGenerator.generate(originalString, j - 2, j + 2, usedIndices)
-                
-                possiblePermutations = PermutationGenerator.oneLevelPermutations(ss)
-                matchCount = 0
+                # allSubstrings = SubstringGenerator.generate(stringToSearchIn, j - 2, j + 2, usedIndices)
+
+
+                #possiblePermutations = PermutationGenerator.CustomPermutations(ss)
 
                 for string in allSubstrings:
                     stringToSearch = string.replace('0','')
-                    if stringToSearch in ss:
-                            continue
-                    for permutedString in possiblePermutations:
-                        
-                        if (1.0*levenshtein(permutedString, stringToSearch))/(len(ss)) <= 0.3:
-                            #usedIndices += range[i,i+j]
-                            if(substringToSearch not in matches):
-                                startBlockID = [m.start() for m in re.finditer(string, originalString)]
-                                startBlockID += [m.start() for m in re.finditer(substringToSearch, originalString)]
-                                ms = MatchingSubstring(substringToSearch)
-                                ms.AddMatch(string, set(startBlockID))
-                                matches[substringToSearch] = ms
-                            else:
-                                ms = matches[substringToSearch]
-                                startBlockID = [m.start() for m in re.finditer(string, originalString)]
-                                ms.AddMatch(string, set(startBlockID))
-                            break
-                            
+
+                    # for permutedString in possiblePermutations:
+
+                    # if (1.0*levenshtein(ss, stringToSearch))/(len(ss)) <= 0.4:
+                    if MatchesFinder.fuzzy_compare(ss, stringToSearch,  math.floor(len(ss) * 0.3)):
+                        if(substringToSearch not in matches):
+                            startBlockID = [m.start() for m in re.finditer(string, originalString)]
+                            startBlockID += [m.start() for m in re.finditer(substringToSearch, originalString)]
+                            ms = MatchingSubstring(substringToSearch)
+                            ms.AddMatch(string, set(startBlockID))
+                            matches[substringToSearch] = ms
+                        else:
+                            ms = matches[substringToSearch]
+                            startBlockID = [m.start() for m in re.finditer(string, originalString)]
+                            ms.AddMatch(string, set(startBlockID))
+                        break
+
         for match in matches.values():
             res.append(match)
         return res
@@ -314,12 +437,37 @@ class MatchesFinder:
 class PermutationGenerator:
     @staticmethod
     def generate(string):
-        result = set()
-        allPermuts = [''.join(p) for p in permutations(string)]
+        allPermuts = permutations(string)
         for perm in allPermuts:
-            if(levenshtein(string,perm) <= 4):
-                result.add(perm)
-        return result
+            if(levenshtein(string,perm)/(len(string)+1) <= 0.1):
+                yield perm
+
+
+    @staticmethod
+    def CustomPermutations(iterable, r=None):
+        # permutations('ABCD', 2) --> AB AC AD BA BC BD CA CB CD DA DB DC
+        # permutations(range(3)) --> 012 021 102 120 201 210
+        pool = tuple(iterable)
+        n = len(pool)
+        r = n if r is None else r
+        if r > n:
+            return
+        indices = range(n)
+        cycles = range(n, n-r, -1)
+        #yield tuple(pool[i] for i in indices[:r])
+        while n:
+            for i in reversed(range(r)):
+                cycles[i] -= 1
+                if cycles[i] == 0:
+                    indices[i:] = indices[i+1:] + indices[i:i+1]
+                    cycles[i] = n - i
+                else:
+                    j = cycles[i]
+                    indices[i], indices[-j] = indices[-j], indices[i]
+                    yield tuple(pool[i] for i in indices[:r])
+                    break
+            else:
+                return
 
     @staticmethod
     def oneLevelPermutations(iterable, r=None):
@@ -331,10 +479,10 @@ class PermutationGenerator:
         if r > n:
             return
         indices = range(n)
-
-        for i in reversed(range(r)):
-            indices[i:] = indices[i+1:] + indices[i:i+1]
-            yield tuple(pool[i] for i in indices[:r])
+        for i in range(0,2):
+            for i in reversed(range(r)):
+                indices[i:] = indices[i+1:] + indices[i:i+1]
+                yield tuple(pool[i] for i in indices[:r])
 
 class SubstringGenerator:
     @staticmethod
@@ -344,28 +492,35 @@ class SubstringGenerator:
         if len(usedIndices) > 0:
             hasUsedIndices = True
         for start in xrange(0,len(string)):
-            if hasUsedIndices:
-                if start in usedIndices:
-                    continue
+            # if hasUsedIndices:
+            #     if start in usedIndices:
+            #         continue
             for end in xrange(start,len(string)):
-                if hasUsedIndices:
-                    if end in usedIndices:
-                        continue
-
-                containsBlackHole = False
-                
-                if hasUsedIndices:
-                    for content in xrange(start, end + 1):
-                        if content in usedIndices:
-                            containsBlackHole = True
-                            break
-                        
-                if containsBlackHole:
+                if end - start < minStringLen:
                     continue
+
+                if end - start > maxLen:
+                    break
+
+                # if hasUsedIndices:
+                #     if end in usedIndices:
+                #         continue
+                #
+                # containsBlackHole = False
+                #
+                # if hasUsedIndices:
+                #     for content in xrange(start, end + 1):
+                #         if content in usedIndices:
+                #             containsBlackHole = True
+                #             break
+                #
+                # if containsBlackHole:
+                #     continue
                 
                 posibleSubstring = string[start:end]
                 ln = len(posibleSubstring)
                 if ln >= minStringLen and ln <= maxLen:
+                    # yield posibleSubstring
                     res.append(posibleSubstring)
         return res
 
@@ -387,8 +542,11 @@ class MatchingSubstring:
 
 if __name__ == "__main__":
     text = "Ополченцысбилидваукраинских"
-    text1 = "abc"
-    print [''.join(p) for p in customPermutations(text1)]
+    text1 = "abcd"
+
+    print [''.join(p) for p in PermutationGenerator.oneLevelPermutations(text1)]
+    print [''.join(p) for p in PermutationGenerator.CustomPermutations(text1)]
+    print MatchesFinder.fuzzy_compare("11116362151", "52612156315",  5)
 
 ##    print ''.join([CharToESP6Groupd.transform(l) for l in text])
 ##    testText = "Ополченцы сбили два украинских Су-25 в Донецкой области. Об этом сообщили в штабе антитеррористического центра. Инцидент произошел в районе Саур-Могилы, где штурмовики выполняли боевые задачи. Информации о судьбе пилотов пока нет. Ранее 23 июля о двух сбитых самолетах сообщили ополченцы."
